@@ -1,6 +1,6 @@
 # Qwen 로컬 STT 실행
 
-이 프로젝트는 음성 인식에 사전학습된 `Qwen/Qwen3-ASR-1.7B`만 사용합니다. 모델을 학습하거나 파인튜닝하지 않았습니다. 대화 생성·TTS·번역·평가에는 OpenAI API가 필요합니다.
+이 프로젝트는 음성 인식에 사전학습된 `Qwen/Qwen3-ASR-1.7B`를 사용합니다. 모델을 학습하거나 파인튜닝하지 않았습니다. 대화 생성·TTS·번역·평가에는 OpenAI API가 필요합니다.
 
 ## 준비
 
@@ -49,6 +49,6 @@ flutter run -t lib/main.dart \
 
 Android 에뮬레이터·USB 실기기 연결 방법은 루트 README를 참고해 주세요.
 
-## 사용하지 않은 OpenAI STT 경로
+## 초기 OpenAI STT 경로
 
-`server/app/main.py`에는 OpenAI 전사 API로 음성을 인식하는 코드가 남아 있습니다. `app.main:app`을 단독으로 실행하면 이 경로가 쓰이지만, 프로젝트 개발·시연에서는 사용하지 않았고 실행 안내에도 포함하지 않습니다.
+`server/app/main.py`에는 초기 개발에 쓰던 OpenAI 전사 API 경로가 남아 있습니다. `app.main:app`을 단독으로 실행하면 이 경로가 쓰입니다. 전사 대기 시간을 줄이기 위해 Qwen 로컬 모델로 교체했고(M3 MacBook Pro 동일 조건에서 2초 이상 → 0.1~0.2초 수준), 실행 안내에는 포함하지 않습니다.

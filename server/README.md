@@ -26,7 +26,7 @@ uv run --no-project --env-file .env .venv/bin/python -m uvicorn \
   app.main_local_stt:app --host 127.0.0.1 --port 8000
 ```
 
-장치·메모리 설정은 [로컬 STT 안내](../docs/local_stt_switch.md)를 참고해 주세요. 대화·TTS·번역·평가는 OpenAI API를 사용합니다. 모델 학습·파인튜닝은 수행하지 않았습니다. `app.main:app`을 단독으로 실행하면 음성 인식이 코드에 남아 있는 OpenAI STT 경로로 처리되며, 프로젝트에서는 이 경로를 사용하지 않았습니다.
+장치·메모리 설정은 [로컬 STT 안내](../docs/local_stt_switch.md)를 참고해 주세요. 대화·TTS·번역·평가는 OpenAI API를 사용합니다. 모델 학습·파인튜닝은 수행하지 않았습니다. `app.main:app`을 단독으로 실행하면 초기 개발에 쓰던 OpenAI STT 경로로 음성을 인식합니다. 이후 Qwen 로컬 모델로 교체했고, 시연과 실행 안내는 Qwen 기준입니다.
 
 `server/main.py`는 기본 학습 API 진입점이 아닙니다. API 문서는 `http://127.0.0.1:8000/docs`에서 확인할 수 있습니다. `/healthz`는 DB·외부 API 전체의 정상 동작을 보장하지 않습니다.
 
