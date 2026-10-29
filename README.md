@@ -1,6 +1,6 @@
 # Sprout English
 
-**AI 기반 개인화 영어 학습 시스템** — 말하기, 상황별 대화, 작문, 단어 복습을 하나의 Flutter 앱에서 연습하는 캡스톤 디자인 졸업작품입니다. FastAPI 서버에 음성 인식(STT), 대화 생성, 음성 합성(TTS)을 연결했습니다.
+**AI 기반 개인화 영어 학습 시스템** — 말하기, 상황별 대화, 작문, 단어 복습을 하나의 Flutter 앱에서 연습하는 캡스톤 디자인 졸업작품입니다. 음성 인식(STT)은 FastAPI 서버에서 실행하는 Qwen3-ASR 로컬 모델로, 대화 생성과 음성 합성(TTS)은 OpenAI API로 처리합니다.
 
 > 남서울대학교 지능정보통신공학과 · 3인 팀 · 학과 졸업작품 평가 **22개 팀 중 대상**
 
@@ -23,7 +23,7 @@
 
 | 기능 | 구현 내용 | 관련 코드 |
 | --- | --- | --- |
-| 영어 프리토킹 | 음성 전사, AI 응답 스트리밍 표시, TTS 재생, 번역 | [대화 화면](lib/screens/push_to_talk_freetalk_screen_exact.dart), [서버](server/app/main.py), [실시간 전사](server/app/realtime_speech.py) |
+| 영어 프리토킹 | 음성 전사, AI 응답 스트리밍 표시, TTS 재생, 번역 | [대화 화면](lib/screens/push_to_talk_freetalk_screen_exact.dart), [서버](server/app/main.py), [실시간 전사](server/app/realtime_speech.py), [로컬 STT](server/app/main_local_stt.py) |
 | 롤플레이 | 상황·난이도 선택 후 역할에 맞는 대화 | [대화 화면](lib/screens/roleplay_session_screen_exact.dart), [API](lib/feature/roleplay/roleplay_api.dart), [서비스](server/app/services/roleplay.py) |
 | TOEIC Writing 3유형 | 사진 묘사, 이메일 응답, 의견 에세이의 문제·답안·평가 | [학습 화면](lib/feature/writing/toeic_writing_page.dart), [라우터](server/app/routers/writing.py) |
 | 문법 검사 | 입력 문장의 교정 결과와 피드백 | [화면](lib/screens/grammar_check_screen.dart), [결과 처리](lib/screens/writing_assist_service.dart) |
@@ -35,12 +35,12 @@
 | --- | --- |
 | 앱 | Flutter/Dart, Dio |
 | 서버 | Python, FastAPI, Uvicorn |
-| AI | OpenAI STT·Chat Completions·TTS API, Qwen3-ASR 사전학습 모델 기반 로컬 STT |
+| AI | Qwen3-ASR-1.7B 사전학습 모델 기반 로컬 STT, OpenAI Chat Completions·TTS API |
 | 데이터 | MySQL, SQLAlchemy Async, 파일 기반 벡터 저장소 |
 
 ```mermaid
 flowchart LR
-    App[Flutter 앱] -->|음성| STT[FastAPI: OpenAI 또는 Qwen STT]
+    App[Flutter 앱] -->|음성| STT[FastAPI: Qwen3-ASR 로컬 STT]
     STT -->|전사 텍스트| App
     App -->|대화 이력| Chat[FastAPI: OpenAI Chat Completions]
     Chat -->|응답 텍스트 스트리밍| App
@@ -55,7 +55,7 @@ flowchart LR
 | 영역 | 본인 담당 범위 |
 | --- | --- |
 | 팀장·기획 | 주제·기능 기획, 역할 분담, 일정 조율, 사용자 흐름 결정 |
-| AI 기능 전반 | 음성 인식·대화 생성·음성 합성·번역·문법 교정·작문 평가 등 AI 기능 전반을 구현하고 연동했습니다. OpenAI API와 Qwen 로컬 STT를 적용하고, 응답 스트리밍과 후속 처리 흐름을 구성했습니다. |
+| AI 기능 전반 | 음성 인식·대화 생성·음성 합성·번역·문법 교정·작문 평가 등 AI 기능 전반을 구현하고 연동했습니다. 음성 인식에는 Qwen 로컬 모델을, 대화 생성·음성 합성·번역·평가에는 OpenAI API를 적용하고, 응답 스트리밍과 후속 처리 흐름을 구성했습니다. |
 | UI/UX | 주요 Flutter 화면 구성과 기능 연결 |
 | 전체 통합 | 팀원 기능 통합, 오류 확인·수정, 시연·발표 준비 |
 
@@ -72,8 +72,8 @@ lib/
   feature/                          # 기능별 화면·API·모델
   core/                             # 서버 주소·오디오·설정·프로필·학습 기록
 server/
-  app/main.py                       # 기본 서버 (OpenAI STT)
-  app/main_local_stt.py              # Qwen 로컬 STT 서버
+  app/main.py                       # 공용 API (대화·TTS·평가 등)
+  app/main_local_stt.py              # 실행 진입점: main.py에 Qwen 로컬 STT 연결
   app/local_stt_switch/              # 모델 로딩·전사·워밍업
   app/routers/                      # Writing 등 API
   app/services/                     # 대화·평가·복습 로직
@@ -104,10 +104,11 @@ uv pip install --python .venv/bin/python -r requirements.txt
 
 | 변수 | 설정 내용 |
 | --- | --- |
-| `OPENAI_API_KEY` | 본인 계정의 API 키. 앱에 넣지 않고 서버에서만 사용합니다. |
+| `OPENAI_API_KEY` | 본인 계정의 API 키. 대화·TTS·번역·평가에 쓰며, 앱에 넣지 않고 서버에서만 사용합니다. |
 | `DB_HOST`, `DB_PORT` | MySQL 주소와 포트 (로컬 구성 시 보통 `127.0.0.1`, `3306`) |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | 미리 생성한 DB와 전용 계정의 접속 정보 |
-| `OPENAI_WHISPER_MODEL` | 사용하는 OpenAI 전사 모델 ID. OpenAI STT 모드에서는 필수입니다. |
+
+음성 인식은 로컬 Qwen 모델이 맡으므로 OpenAI 전사 모델 설정(`OPENAI_WHISPER_MODEL`)은 필요하지 않습니다.
 
 빈 `DB_PORT`는 정수 설정 오류를 발생시키므로 반드시 채워 주세요. 서버가 테이블 생성을 시도하지만 DB 자체와 계정은 생성하지 않습니다. 기존 개인정보가 포함된 SQL 스냅샷을 실행 환경 준비에 사용하지 않습니다.
 
@@ -115,16 +116,7 @@ uv pip install --python .venv/bin/python -r requirements.txt
 
 ### 2. 서버 실행
 
-다음 중 한 모드만 `server/`에서 실행합니다. `uv --env-file`로 환경변수를 먼저 전달해 모듈별 설정 읽기 방식을 맞춥니다.
-
-OpenAI STT 모드:
-
-```bash
-uv run --no-project --env-file .env .venv/bin/python -m uvicorn \
-  app.main:app --host 127.0.0.1 --port 8000
-```
-
-Qwen 로컬 STT 모드:
+`server/`에서 로컬 STT 의존성을 추가로 설치한 뒤 Qwen 로컬 STT 진입점으로 실행합니다. `uv --env-file`로 환경변수를 먼저 전달해 모듈별 설정 읽기 방식을 맞춥니다.
 
 ```bash
 uv pip install --python .venv/bin/python -r requirements-local-stt.txt
@@ -134,7 +126,9 @@ uv run --no-project --env-file .env .venv/bin/python -m uvicorn \
   app.main_local_stt:app --host 127.0.0.1 --port 8000
 ```
 
-Qwen은 첫 실행 시 모델 다운로드와 워밍업이 필요할 수 있습니다. 장치·메모리·추론 설정은 [로컬 STT 안내](docs/local_stt_switch.md)를 참고해 주세요. 위 명령은 기존 서버 프로세스를 종료하지 않습니다.
+Qwen은 첫 실행 시 모델 다운로드가 필요하고, 서버 시작 시 모델을 불러와 워밍업합니다. 장치·메모리·추론 설정은 [로컬 STT 안내](docs/local_stt_switch.md)를 참고해 주세요. 위 명령은 기존 서버 프로세스를 종료하지 않습니다.
+
+`app.main:app`을 단독으로 실행하면 음성 인식이 코드에 남아 있는 OpenAI STT 경로로 처리됩니다. 프로젝트 개발·시연에서는 이 경로를 사용하지 않았습니다.
 
 API 문서는 실행 후 `http://127.0.0.1:8000/docs`에 있습니다. `/healthz` 성공만으로 DB·AI 기능 전체가 검증되지는 않습니다.
 
